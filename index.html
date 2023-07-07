@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="Style.css">
+</head>
+
+<body>
+    <div class="a_link">
+        
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <div class="card">
+        <a href="Statistics_30_Day_forecast.html">Forecast</a>
+        <div class="search">
+            <input type="text" placeholder="Enter City Name" spellcheck="false">
+            <button><img src="search.png"></button>
+        </div>
+        <div class="weather">
+            <img src="" class="weather-icon">
+            <h1 class="temp">22°C</h1>
+            <h2 class="city">Addis Ababa</h2>
+            <div class="details">
+                <div class="col">
+                    <img src="humidity.png">
+                    <p class="humidity">50%</p>
+                    <p>Humidity</p>
+                </div>
+                <div class="col">
+                    <img src="wind.png">
+                    <p class="wind">15 km/h</p>
+                    <p>Wind Speed</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+
+        const apiKey = "a8263ae0f217a1368cc27c6649fe3a71";
+        const apiUrl = "https://api.openweathermap.org/data/2.5/weather?units=metric";
+        const defaultCity = 'Addis Ababa'; // Set default city
+
+        async function getWeatherData(city) {
+            const response = await fetch(`${apiUrl}&q=${city}&appid=${apiKey}`);
+            const data = await response.json();
+            if (data.cod === 200) {
+                const temp = Math.round(data.main.temp);
+                const humidity = data.main.humidity;
+                const windSpeed = data.wind.speed;
+                const condition = data.weather[0].main;
+                document.querySelector('.temp').textContent = `${temp}°C`;
+                document.querySelector('.humidity').textContent = `${humidity}%`;
+                document.querySelector('.wind').textContent = `${windSpeed} km/h`;
+                document.querySelector('.city').textContent = city;
+
+                // Set weather icon based on weather condition
+                let weatherIcon;
+                switch (condition) {
+                    case 'Clear':
+                        weatherIcon = 'clear.png';
+                        break;
+                    case 'Clouds':
+                        weatherIcon = 'clouds.png';
+                        break;
+                    case 'Rain':
+                        weatherIcon = 'rain.png';
+                        break;
+                    case 'Snow':
+                        weatherIcon = 'snow.png';
+                        break;
+                    default:
+                        weatherIcon = 'clear.png';
+                }
+                document.querySelector('.weather-icon').src = `${weatherIcon}`;
+            } else {
+                alert('City not found');
+            }
+        }
+
+        document.querySelector('button').addEventListener('click', () => {
+            const city = document.querySelector('input').value;
+            getWeatherData(city);
+        });
+
+        // Display weather for default city on page load
+        getWeatherData(defaultCity);
+
+        document.querySelector('button').addEventListener('click', () => {
+            const city = document.querySelector('input').value;
+            getWeatherData(city);
+        });
+
+
+
+        document.querySelector('button').addEventListener('click', () => {
+            const city = document.querySelector('#cityInput').value;
+            const countryCode = document.querySelector('#countryCodeInput').value;
+            getClimateData(city, countryCode);
+        });
+    </script>
+</body>
+
+</html>

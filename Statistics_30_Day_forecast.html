@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>30 Day Forecast</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://code.highcharts.com/highcharts.js"></script>
+    <style>
+        body {
+            margin: auto;
+            width: 80%;
+            background: rgb(60, 59, 59);
+            color: #fff;
+        }
+
+        .chart-container {
+            margin-top: 10px;
+            display: flex;
+            justify-content: space-between;
+            color: #050505;
+            background: #fff;
+            box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+        }
+        .weatherConditionChart{
+            background: #fff;
+            box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+            padding: 20px;
+        }
+
+        .chart {
+            display: inline-flex;
+            width: 60%;
+            height: 500px;
+        }
+
+        table {
+            margin-top: 20px;
+            border-collapse: collapse;
+            width: 100%;
+        }
+
+        th,
+        td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #3b3636;
+        }
+
+        .button {
+            align-items: center;
+            background-clip: padding-box;
+            background-color: #fa6400;
+            border: 1px solid transparent;
+            border-radius: .25rem;
+            box-shadow: rgba(0, 0, 0, 0.02) 0 1px 3px 0;
+            box-sizing: border-box;
+            color: #fff;
+            cursor: pointer;
+            display: inline-flex;
+            font-family: system-ui, -apple-system, system-ui, "Helvetica Neue", Helvetica, Arial, sans-serif;
+            font-size: 16px;
+            font-weight: 600;
+            justify-content: center;
+            line-height: 1;
+            margin: 0;
+            min-height: 1.5rem;
+            padding: calc(.875rem - 1px) calc(1.5rem - 1px);
+            position: relative;
+            text-decoration: none;
+            transition: all 250ms;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+            vertical-align: baseline;
+            width: auto;
+        }
+
+        .button:hover,
+        .button:focus {
+            background-color: #fb8332;
+            box-shadow: rgba(0, 0, 0, 0.1) 0 4px 12px;
+        }
+
+        .button:hover {
+            transform: translateY(-1px);
+        }
+
+        .button:active {
+            background-color: #c85000;
+            box-shadow: rgba(0, 0, 0, .06) 0 2px 4px;
+            transform: translateY(0);
+        }
+        .cityInput{
+            min-height: 30px;
+            width: 25%;
+            padding: 4px;
+        }
+    </style>
+</head>
+
+<body>
+    <div>
+        <label for="cityInput">Enter City:</label>
+        <input type="text" id="cityInput" class="cityInput">
+        <button id="button" class="button">Search</button>
+    </div>
+    <div class="chart-container">
+        <canvas id="climateChart" class="chart"></canvas>
+        <div id="container" class="chart"></div>
+    </div>
+    <div>
+        <h2>Weather Conditions</h2>
+        <canvas id="weatherConditionChart" class="weatherConditionChart"></canvas>
+    </div>
+    <div>
+        <h2>Weather Forecast</h2>
+        <table id="weatherTable">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Min Temp (°C)</th>
+                    <th>Max Temp (°C)</th>
+                    <th>Condition</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+
+    <script>
+        const apiKey = "a8263ae0f217a1368cc27c6649fe3a71";
+        const apiUrl = "https://api.openweathermap.org/data/2.5/forecast";
+
+        async function getClimateData(city) {
+            const response = await fetch(`${apiUrl}?q=${city}&units=metric&appid=${apiKey}`);
+            const data = await response.json();
+            if (data.cod === "200") {
+                const weatherData = data.list.map(item => ({
+                    date: new Date(item.dt * 1000).toLocaleDateString(),
+                    minTemp: item.main.temp_min,
+                    maxTemp: item.main.temp_max,
+                    condition: item.weather[0].main
+                }));
+                const labels = weatherData.map(item => item.date);
+                const minTemps = weatherData.map(item => item.minTemp);
+                const maxTemps = weatherData.map(item => item.maxTemp);
+                const conditions = weatherData.map(item => item.condition);
+                const ctx = document.querySelector('#climateChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels,
+                        datasets: [{
+                            label: 'Temperature Range (°C)',
+                            data: weatherData.map(item => ({
+                                x: item.date,
+                                y: [item.minTemp, item.maxTemp]
+                            })),
+                            backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                            borderColor: 'rgba(54, 162, 235, 1)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'Temperature (°C)'
+                                }
+                            },
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Date'
+                                }
+                            }
+                        }
+                    }
+                });
+
+                const conditionCounts = {};
+                conditions.forEach(condition => {
+                    if (conditionCounts[condition]) {
+                        conditionCounts[condition]++;
+                    } else {
+                        conditionCounts[condition] = 1;
+                    }
+                });
+                const conditionLabels = Object.keys(conditionCounts);
+                const conditionData = Object.values(conditionCounts);
+                const conditionCtx = document.querySelector('#weatherConditionChart').getContext('2d');
+                new Chart(conditionCtx, {
+                    type: 'pie',
+                    data: {
+                        labels: conditionLabels,
+                        datasets: [{
+                            data: conditionData,
+                            backgroundColor: [
+                                'rgba(255, 99, 132, 0.5)',
+                                'rgba(54, 162, 235, 0.5)',
+                                'rgba(255, 206, 86, 0.5)',
+                                'rgba(75, 192, 192, 0.5)',
+                                'rgba(153, 102, 255, 0.5)',
+                                'rgba(255, 159, 64, 0.5)'
+                            ],
+                            borderColor: [
+                                'rgba(255, 99, 132, 1)',
+                                'rgba(54, 162, 235, 1)',
+                                'rgba(255, 206, 86, 1)',
+                                'rgba(75, 192, 192, 1)',
+                                'rgba(153, 102, 255, 1)',
+                                'rgba(255, 159, 64, 1)'
+                            ],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'Count'
+                                }
+                            }
+                        }
+                    }
+                });
+
+                const weatherTable = document.getElementById('weatherTable');
+                const tbody = weatherTable.querySelector('tbody');
+                tbody.innerHTML = '';
+                weatherData.forEach(item => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                    <td>${item.date}</td>
+                    <td>${item.minTemp}</td>
+                    <td>${item.maxTemp}</td>
+                    <td>${item.condition}</td>
+                `;
+                    tbody.appendChild(row);
+                });
+            }
+        }
+
+        const button = document.getElementById('button');
+        button.addEventListener('click', () => {
+            const cityInput = document.getElementById('cityInput');
+            const city = cityInput.value;
+            getClimateData(city);
+        });
+    </script>
+
+
+    <!-- <script>
+        const apiKey = "a8263ae0f217a1368cc27c6649fe3a71";
+        const apiUrl = "https://api.openweathermap.org/data/2.5/forecast";
+
+        async function getClimateData(city) {
+            const response = await fetch(`${apiUrl}?q=${city}&appid=${apiKey}`);
+            const data = await response.json();
+            if (data.cod === "200") {
+                const weatherData = data.list.map(item => ({
+                    date: new Date(item.dt * 1000).toLocaleDateString(),
+                    minTemp: item.main.temp_min,
+                    maxTemp: item.main.temp_max,
+                    condition: item.weather[0].main
+                }));
+                const labels = weatherData.map(item => item.date);
+                const minTemps = weatherData.map(item => item.minTemp);
+                const maxTemps = weatherData.map(item => item.maxTemp);
+                const conditions = weatherData.map(item => item.condition);
+                const ctx = document.querySelector('#climateChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels,
+                        datasets: [{
+                            label: 'Temperature Range (°C)',
+                            data: weatherData.map(item => ({
+                                x: item.date,
+                                y: [item.minTemp, item.maxTemp]
+                            })),
+                            backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                            borderColor: 'rgba(54, 162, 235, 1)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'Temperature (°C)'
+                                }
+                            },
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Date'
+                                }
+                            }
+                        }
+                    }
+                });
+
+                const conditionCounts = {};
+                conditions.forEach(condition => {
+                    if (conditionCounts[condition]) {
+                        conditionCounts[condition]++;
+                    } else {
+                        conditionCounts[condition] = 1;
+                    }
+                });
+                const conditionLabels = Object.keys(conditionCounts);
+                const conditionData = Object.values(conditionCounts);
+                const conditionCtx = document.querySelector('#weatherConditionChart').getContext('2d');
+                new Chart(conditionCtx, {
+                    type: 'pie',
+                    data: {
+                        labels: conditionLabels,
+                        datasets: [{
+                            data: conditionData,
+                            backgroundColor: [
+                                'rgba(255, 99, 132, 0.5)',
+                                'rgba(54, 162, 235, 0.5)',
+                                'rgba(255, 206, 86, 0.5)',
+                                'rgba(75, 192, 192, 0.5)',
+                                'rgba(153, 102, 255, 0.5)',
+                                'rgba(255, 159, 64, 0.5)'
+                            ],
+                            borderColor: [
+                                'rgba(255, 99, 132, 1)',
+                                'rgba(54, 162, 235, 1)',
+                                'rgba(255, 206, 86, 1)',
+                                'rgba(75, 192, 192, 1)',
+                                'rgba(153, 102, 255, 1)',
+                                'rgba(255, 159, 64, 1)'
+                            ],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'Count'
+                                }
+                            }
+                        }
+                    }
+                });
+
+                const weatherTable = document.getElementById('weatherTable');
+                const tbody = weatherTable.querySelector('tbody');
+                tbody.innerHTML = '';
+                weatherData.forEach(item => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${item.date}</td>
+                        <td>${item.minTemp}</td>
+                        <td>${item.maxTemp}</td>
+                        <td>${item.condition}</td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            }
+        }
+
+        const button = document.getElementById('button');
+        button.addEventListener('click', () => {
+            const cityInput = document.getElementById('cityInput');
+            const city = cityInput.value;
+            getClimateData(city);
+        });
+    </script> -->
+</body>
+
+</html>
